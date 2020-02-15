@@ -30,7 +30,7 @@ export class Game {
         light.intensity = 2;
         light.setDirectionToTarget(BABYLON.Vector3.Zero());
 
-        this.cube = new Cube(this.scene, 3);
+        this.cube = new Cube(this.scene);
     }
 
     render(): void {
