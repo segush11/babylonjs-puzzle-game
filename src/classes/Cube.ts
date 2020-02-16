@@ -1,15 +1,7 @@
 import * as BABYLON from 'babylonjs';
+import { Cubie } from './Cubie';
 
 enum AxisName { X = 'x', Y = 'y', Z = 'z' };
-
-const COLORS = [
-    BABYLON.Color4.FromHexString('#0066FFFF'),
-    BABYLON.Color4.FromHexString('#33CC00FF'),
-    BABYLON.Color4.FromHexString('#FF0000FF'),
-    BABYLON.Color4.FromHexString('#FF9900FF'),
-    BABYLON.Color4.FromHexString('#FFFFFFFF'),
-    BABYLON.Color4.FromHexString('#FFFF66FF')
-];
 
 const AXIS = {
     [AxisName.X]: BABYLON.Axis.X,
@@ -20,17 +12,25 @@ const AXIS = {
 export class Cube {
     center: BABYLON.Vector3 = BABYLON.Vector3.Zero();
 
-    boxes: Array<BABYLON.AbstractMesh> = [];
+    cubies: Array<Cubie> = [];
 
     constructor(scene: BABYLON.Scene) {
+        const cubieMaterial = new BABYLON.StandardMaterial('material', scene);
+        cubieMaterial.diffuseTexture = new BABYLON.Texture(
+            'https://dl.dropbox.com/s/gzmav3qcq6mpowz/rubiks-cube-diffuse.png',
+            scene
+        );
+        cubieMaterial.specularTexture = new BABYLON.Texture(
+            'https://dl.dropbox.com/s/5ybdpwe93te66qj/rubiks-cube-specular.png',
+            scene
+        );
+
         for (let x = -1; x <= 1; x++) {
             for (let y = -1; y <= 1; y++) {
                 for (let z = -1; z <= 1; z++) {
-                    const box = BABYLON.MeshBuilder.CreateBox("box", { faceColors: COLORS }, scene);
-                    box.position = new BABYLON.Vector3(x, y, z);
-                    box.enableEdgesRendering();
-                    box.edgesColor = BABYLON.Color3.Black().toColor4();
-                    this.boxes.push(box);
+                    const cubie = new Cubie(scene, cubieMaterial);
+                    cubie.holder.position = new BABYLON.Vector3(x, y, z);
+                    this.cubies.push(cubie);
                 }
             }
         }
@@ -39,19 +39,19 @@ export class Cube {
     rotate(axisName: AxisName, isClockwise: boolean, options: { layersCount: number; layer?: number }): void {
         const { layersCount, layer = null } = options;
         const axis = isClockwise ? AXIS[axisName] : AXIS[axisName].negate();
-        let boxes: Array<BABYLON.AbstractMesh> = [];
+        let cubies: Array<Cubie> = [];
 
         if (layersCount === 3) {
-            boxes = this.boxes;
+            cubies = this.cubies;
         } else if (layersCount === 2 && layer !== null) {
             const ignorePosition = layer === 1 ? 1 : -1;
-            boxes = this.boxes.filter(box => box.position[axisName] !== ignorePosition);
+            cubies = this.cubies.filter(cubie => cubie.holder.position[axisName] !== ignorePosition);
         } else if (layersCount === 1 && layer !== null) {
             const startPosition = layer - 2;
-            boxes = this.boxes.filter(box => box.position[axisName] === startPosition);
+            cubies = this.cubies.filter(cubie => cubie.holder.position[axisName] === startPosition);
         }
 
-        for (let box of boxes) box.rotateAround(this.center, axis, Math.PI / 2);
+        for (let cubie of cubies) cubie.holder.rotateAround(this.center, axis, Math.PI / 2);
     }
 
     applyRotationRule(r: string) {
