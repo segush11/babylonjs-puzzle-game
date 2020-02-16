@@ -2,22 +2,23 @@ import * as BABYLON from 'babylonjs';
 import { Cube } from './Cube';
 
 export class Game {
-    public canvas: HTMLCanvasElement;
+    private canvas: HTMLCanvasElement;
 
-    public engine: BABYLON.Engine;
+    private engine: BABYLON.Engine;
 
-    public scene: BABYLON.Scene;
+    private scene!: BABYLON.Scene;
 
-    public cube: Cube;
+    private cube!: Cube;
 
     constructor(canvas: HTMLCanvasElement) {
         this.canvas = canvas;
-        this.engine = new BABYLON.Engine(this.canvas, true, { preserveDrawingBuffer: true, stencil: true });
+        this.engine = new BABYLON.Engine(
+            this.canvas, true, { preserveDrawingBuffer: true, stencil: true }, true
+        );
+    }
 
+    createScene(): void {
         this.scene = new BABYLON.Scene(this.engine);
-        this.scene.debugLayer.show();
-
-        this.engine.runRenderLoop(this.render.bind(this));
 
         const camera = new BABYLON.ArcRotateCamera('camera', 0, 0, 10, BABYLON.Vector3.Zero(), this.scene);
         camera.setPosition(new BABYLON.Vector3(5, 5, -5));
@@ -33,11 +34,13 @@ export class Game {
         this.cube = new Cube(this.scene);
     }
 
-    render(): void {
-        this.scene.render();
-    }
+    doRender(): void {
+        this.engine.runRenderLoop(() => {
+            this.scene.render();
+        });
 
-    resize(): void {
-        this.engine.resize();
+        window.addEventListener('resize', () => {
+            this.engine.resize();
+        });
     }
 }
