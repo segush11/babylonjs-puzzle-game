@@ -3,18 +3,15 @@ import { Cubie } from './Cubie';
 
 enum AxisName { X = 'x', Y = 'y', Z = 'z' };
 
-const AXIS = {
-    [AxisName.X]: BABYLON.Axis.X,
-    [AxisName.Y]: BABYLON.Axis.Y,
-    [AxisName.Z]: BABYLON.Axis.Z
-};
-
 export class Cube {
-    center: BABYLON.Vector3 = BABYLON.Vector3.Zero();
-
     cubies: Array<Cubie> = [];
 
+    pivot: BABYLON.TransformNode;
+
     constructor(scene: BABYLON.Scene) {
+        this.pivot = new BABYLON.TransformNode('pivot', scene);
+        this.pivot.position.set(0, 0, 0);
+
         const cubieMaterial = new BABYLON.StandardMaterial('material', scene);
         cubieMaterial.diffuseTexture = new BABYLON.Texture(
             'https://dl.dropbox.com/s/gzmav3qcq6mpowz/rubiks-cube-diffuse.png',
@@ -38,7 +35,6 @@ export class Cube {
 
     rotate(axisName: AxisName, isClockwise: boolean, options: { layersCount: number; layer?: number }): void {
         const { layersCount, layer = null } = options;
-        const axis = isClockwise ? AXIS[axisName] : AXIS[axisName].negate();
         let cubies: Array<Cubie> = [];
 
         if (layersCount === 3) {
@@ -51,7 +47,23 @@ export class Cube {
             cubies = this.cubies.filter(cubie => cubie.holder.position[axisName] === startPosition);
         }
 
-        for (let cubie of cubies) cubie.holder.rotateAround(this.center, axis, Math.PI / 2);
+        if (cubies.length === 0) return;
+
+        let prevParent = cubies[0].holder.parent;
+
+        for (let cubie of cubies) cubie.holder.setParent(this.pivot);
+
+        const angle = isClockwise ? Math.PI / 2 : -Math.PI / 2;
+        const animation = BABYLON.Animation.CreateAndStartAnimation(
+            'rotate', this.pivot, `rotation.${axisName}`, 60, 45, 0, angle, 0
+        );
+
+        if (animation !== null) {
+            animation.onAnimationEnd = () => {
+                for (let cubie of cubies) cubie.holder.setParent(prevParent);
+                this.pivot.rotation = BABYLON.Vector3.Zero();
+            };
+        }
     }
 
     applyRotationRule(r: string) {
