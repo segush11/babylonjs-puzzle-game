@@ -8,11 +8,16 @@ export class Cube {
 
     pivot: BABYLON.TransformNode;
 
+    holder: BABYLON.TransformNode;
+
     constructor(scene: BABYLON.Scene) {
+        this.holder = new BABYLON.TransformNode('cube', scene);
+        this.holder.position.set(0, 0, 0);
+
         this.pivot = new BABYLON.TransformNode('pivot', scene);
         this.pivot.position.set(0, 0, 0);
 
-        const cubieMaterial = new BABYLON.StandardMaterial('material', scene);
+        const cubieMaterial = new BABYLON.StandardMaterial('cubie-material', scene);
         cubieMaterial.diffuseTexture = new BABYLON.Texture(
             'https://dl.dropbox.com/s/gzmav3qcq6mpowz/rubiks-cube-diffuse.png',
             scene
@@ -25,8 +30,18 @@ export class Cube {
         for (let x = -1; x <= 1; x++) {
             for (let y = -1; y <= 1; y++) {
                 for (let z = -1; z <= 1; z++) {
-                    const cubie = new Cubie(scene, cubieMaterial);
+                    const coloredFaces = [];
+
+                    if (z === 1) coloredFaces.push(0);
+                    if (z === -1) coloredFaces.push(1);
+                    if (x === 1) coloredFaces.push(2);
+                    if (x === -1) coloredFaces.push(3);
+                    if (y === 1) coloredFaces.push(4);
+                    if (y === -1) coloredFaces.push(5);
+
+                    const cubie = new Cubie(scene, cubieMaterial, coloredFaces);
                     cubie.holder.position = new BABYLON.Vector3(x, y, z);
+                    cubie.holder.parent = this.holder;
                     this.cubies.push(cubie);
                 }
             }
@@ -49,18 +64,16 @@ export class Cube {
 
         if (cubies.length === 0) return;
 
-        let prevParent = cubies[0].holder.parent;
-
         for (let cubie of cubies) cubie.holder.setParent(this.pivot);
 
         const angle = isClockwise ? Math.PI / 2 : -Math.PI / 2;
         const animation = BABYLON.Animation.CreateAndStartAnimation(
-            'rotate', this.pivot, `rotation.${axisName}`, 60, 45, 0, angle, 0
+            'rotation', this.pivot, `rotation.${axisName}`, 60, 45, 0, angle, 0
         );
 
         if (animation !== null) {
             animation.onAnimationEnd = () => {
-                for (let cubie of cubies) cubie.holder.setParent(prevParent);
+                for (let cubie of cubies) cubie.holder.setParent(this.holder);
                 this.pivot.rotation = BABYLON.Vector3.Zero();
             };
         }

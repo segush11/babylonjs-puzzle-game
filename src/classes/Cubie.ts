@@ -41,16 +41,18 @@ export class Cubie {
         }
     }
 
-    constructor(scene: BABYLON.Scene, cubieMaterial: BABYLON.StandardMaterial) {
+    constructor(scene: BABYLON.Scene, cubieMaterial: BABYLON.StandardMaterial, coloredFaces: number[]) {
         this.holder = BABYLON.Mesh.CreateBox('cubie', 0.1, scene, true);
         this.holder.isPickable = false;
         this.holder.isVisible = false;
 
         for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
             const material = cubieMaterial.clone('material');
-            material.diffuseColor = Cubie.getColor(faceIndex);
+            material.diffuseColor = coloredFaces.includes(faceIndex)
+                ? Cubie.getColor(faceIndex)
+                : BABYLON.Color3.Black();
 
-            const face = BABYLON.Mesh.CreatePlane(name, 1.0, scene, true);
+            const face = BABYLON.Mesh.CreatePlane('face', 1.0, scene, true);
             face.parent = this.holder;
             face.material = material;
             face.position = Cubie.getPosition(faceIndex);
