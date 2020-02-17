@@ -77,7 +77,7 @@ export class Cube {
                     cubie.holder.setParent(this.holder);
                     /**
                      * It is necessary to round the coordinates
-                     * after rotation to get rid of the error
+                     * after rotation to get rid of the inaccuracy
                      *
                      * https://forum.babylonjs.com/t/how-to-fix-coordinates-after-rotation/8612/5
                      */
