@@ -5,13 +5,13 @@ import { Animator } from "./Animator";
 enum AxisName { X = 'x', Y = 'y', Z = 'z' }
 
 export class Cube {
-    cubies: Array<Cubie> = [];
+    private cubies: Cubie[] = [];
 
-    pivot: BABYLON.TransformNode;
+    private pivot: BABYLON.TransformNode;
 
-    holder: BABYLON.TransformNode;
+    private holder: BABYLON.TransformNode;
 
-    animator: Animator = new Animator();
+    private animator: Animator = new Animator();
 
     constructor(scene: BABYLON.Scene) {
         this.holder = new BABYLON.TransformNode('cube', scene);
@@ -52,7 +52,7 @@ export class Cube {
     }
 
     rotate(axisName: AxisName, isClockwise: boolean, layersCount: number, layer?: number): Promise<void> {
-        let cubies: Array<Cubie> = [];
+        let cubies: Cubie[] = [];
 
         if (layersCount === 3) {
             cubies = this.cubies;
