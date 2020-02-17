@@ -73,7 +73,18 @@ export class Cube {
 
         if (animation !== null) {
             animation.onAnimationEnd = () => {
-                for (let cubie of cubies) cubie.holder.setParent(this.holder);
+                for (let cubie of cubies) {
+                    cubie.holder.setParent(this.holder);
+                    /**
+                     * It is necessary to round the coordinates
+                     * after rotation to get rid of the error
+                     *
+                     * https://forum.babylonjs.com/t/how-to-fix-coordinates-after-rotation/8612/5
+                     */
+                    cubie.holder.position.x = Math.round(cubie.holder.position.x);
+                    cubie.holder.position.y = Math.round(cubie.holder.position.y);
+                    cubie.holder.position.z = Math.round(cubie.holder.position.z);
+                }
                 this.pivot.rotation = BABYLON.Vector3.Zero();
             };
         }
