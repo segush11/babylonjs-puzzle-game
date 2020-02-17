@@ -1,7 +1,8 @@
 import * as BABYLON from 'babylonjs';
 import { Cubie } from './Cubie';
+import { Animator } from "./Animator";
 
-enum AxisName { X = 'x', Y = 'y', Z = 'z' };
+enum AxisName { X = 'x', Y = 'y', Z = 'z' }
 
 export class Cube {
     cubies: Array<Cubie> = [];
@@ -9,6 +10,8 @@ export class Cube {
     pivot: BABYLON.TransformNode;
 
     holder: BABYLON.TransformNode;
+
+    animator: Animator = new Animator();
 
     constructor(scene: BABYLON.Scene) {
         this.holder = new BABYLON.TransformNode('cube', scene);
@@ -48,71 +51,89 @@ export class Cube {
         }
     }
 
-    rotate(axisName: AxisName, isClockwise: boolean, options: { layersCount: number; layer?: number }): void {
-        const { layersCount, layer = null } = options;
+    rotate(axisName: AxisName, isClockwise: boolean, layersCount: number, layer?: number): Promise<void> {
         let cubies: Array<Cubie> = [];
 
         if (layersCount === 3) {
             cubies = this.cubies;
-        } else if (layersCount === 2 && layer !== null) {
+        } else if (layersCount === 2 && !!layer) {
             const ignorePosition = layer === 1 ? 1 : -1;
             cubies = this.cubies.filter(cubie => cubie.holder.position[axisName] !== ignorePosition);
-        } else if (layersCount === 1 && layer !== null) {
+        } else if (layersCount === 1 && layer) {
             const startPosition = layer - 2;
             cubies = this.cubies.filter(cubie => cubie.holder.position[axisName] === startPosition);
         }
 
-        if (cubies.length === 0) return;
+        if (cubies.length === 0) return Promise.resolve();
 
         for (let cubie of cubies) cubie.holder.setParent(this.pivot);
 
-        const angle = isClockwise ? Math.PI / 2 : -Math.PI / 2;
-        const animation = BABYLON.Animation.CreateAndStartAnimation(
-            'rotation', this.pivot, `rotation.${axisName}`, 60, 45, 0, angle, 0
-        );
-
-        if (animation !== null) {
-            animation.onAnimationEnd = () => {
-                for (let cubie of cubies) {
-                    cubie.holder.setParent(this.holder);
-                    /**
-                     * It is necessary to round the coordinates
-                     * after rotation to get rid of the inaccuracy
-                     *
-                     * https://forum.babylonjs.com/t/how-to-fix-coordinates-after-rotation/8612/5
-                     */
-                    cubie.holder.position.x = Math.round(cubie.holder.position.x);
-                    cubie.holder.position.y = Math.round(cubie.holder.position.y);
-                    cubie.holder.position.z = Math.round(cubie.holder.position.z);
-                }
-                this.pivot.rotation = BABYLON.Vector3.Zero();
-            };
-        }
+        return this.animator.createAnimation({
+            duration: 1000,
+            from: 0,
+            to: isClockwise ? Math.PI / 2 : -Math.PI / 2,
+            mesh: this.pivot,
+            property: `rotation.${axisName}`
+        }).then(() => {
+            for (let cubie of cubies) {
+                cubie.holder.setParent(this.holder);
+                /**
+                 * It is necessary to round the coordinates
+                 * after rotation to get rid of the inaccuracy
+                 *
+                 * https://forum.babylonjs.com/t/how-to-fix-coordinates-after-rotation/8612/5
+                 */
+                cubie.holder.position.x = Math.round(cubie.holder.position.x);
+                cubie.holder.position.y = Math.round(cubie.holder.position.y);
+                cubie.holder.position.z = Math.round(cubie.holder.position.z);
+            }
+            this.pivot.rotation = BABYLON.Vector3.Zero();
+        });
     }
 
-    applyRotationRule(r: string) {
-        const normalizedRule = r.toLowerCase();
-        const layersCount = normalizedRule === r ? 2 : 1;
-        const rule = normalizedRule.replace('\'', '');
-        const isClockwise = rule === normalizedRule;
+    createRotationRule(r: string): () => Promise<void> {
+        return () => {
+            const normalizedRule = r.toLowerCase();
+            const layersCount = normalizedRule === r ? 2 : 1;
+            const rule = normalizedRule.replace('\'', '');
+            const isClockwise = rule === normalizedRule;
 
-        switch (rule) {
-            case 'u': this.rotate(AxisName.Y, isClockwise, { layersCount, layer: 3 }); return;
-            case 'l': this.rotate(AxisName.X, !isClockwise, { layersCount, layer: 1 }); return;
-            case 'f': this.rotate(AxisName.Z, !isClockwise, { layersCount, layer: 1 }); return;
-            case 'r': this.rotate(AxisName.X, isClockwise, { layersCount, layer: 3 }); return;
-            case 'b': this.rotate(AxisName.Z, isClockwise, { layersCount, layer: 3 }); return;
-            case 'd': this.rotate(AxisName.Y, !isClockwise, { layersCount, layer: 1 }); return;
+            switch (rule) {
+                case 'u': return this.rotate(AxisName.Y, isClockwise, layersCount, 3);
+                case 'l': return this.rotate(AxisName.X, !isClockwise, layersCount, 1);
+                case 'f': return this.rotate(AxisName.Z, !isClockwise, layersCount, 1);
+                case 'r': return this.rotate(AxisName.X, isClockwise, layersCount, 3);
+                case 'b': return this.rotate(AxisName.Z, isClockwise, layersCount, 3);
+                case 'd': return this.rotate(AxisName.Y, !isClockwise, layersCount, 1);
 
-            case 'm': this.rotate(AxisName.X, !isClockwise, { layersCount: 1, layer: 2 }); return;
-            case 'e': this.rotate(AxisName.Y, !isClockwise, { layersCount: 1, layer: 2 }); return;
-            case 's': this.rotate(AxisName.Z, !isClockwise, { layersCount: 1, layer: 2 }); return;
+                case 'm': return this.rotate(AxisName.X, !isClockwise, 1, 2);
+                case 'e': return this.rotate(AxisName.Y, !isClockwise, 1, 2);
+                case 's': return this.rotate(AxisName.Z, !isClockwise, 1, 2);
 
-            case 'x': this.rotate(AxisName.X, isClockwise, { layersCount: 3 }); return;
-            case 'y': this.rotate(AxisName.Y, isClockwise, { layersCount: 3 }); return;
-            case 'z': this.rotate(AxisName.Z, !isClockwise, { layersCount: 3 }); return;
+                case 'x': return this.rotate(AxisName.X, isClockwise, 3);
+                case 'y': return this.rotate(AxisName.Y, isClockwise, 3);
+                case 'z': return this.rotate(AxisName.Z, !isClockwise, 3);
 
-            default: return;
+                default: throw new Error(`the rule ${r} is not incorrectly`);
+            }
+        };
+    }
+
+    // TODO: save rotation history
+    shuffle() {
+        const rulesDictionary: string[] = ['u', 'l', 'f', 'r', 'b', 'd', 'm', 'e', 's'];
+        const randomRange = (min: number, max: number) => Math.floor(BABYLON.Scalar.RandomRange(min, max));
+
+        const randomRules: string[] = [];
+        for (let i = 0; i < randomRange(10, 20); i++) {
+            const rule = rulesDictionary[randomRange(0, rulesDictionary.length)];
+            const counterClockwiseMark = randomRange(0, 1) ? '\'' : '';
+
+            randomRules.push(`${rule}${counterClockwiseMark}`);
         }
+
+        randomRules
+            .map(rule => this.createRotationRule(rule))
+            .reduce((prev, curr) => prev.then(curr), Promise.resolve());
     }
 }
